@@ -468,6 +468,7 @@ function kube::build::ensure_data_container() {
       --volume /usr/local/go/pkg/linux_arm_cgo
       --volume /usr/local/go/pkg/linux_arm64_cgo
       --volume /usr/local/go/pkg/linux_ppc64le_cgo
+      --volume /usr/local/go/pkg/linux_riscv64_cgo
       --volume /usr/local/go/pkg/darwin_amd64_cgo
       --volume /usr/local/go/pkg/darwin_386_cgo
       --volume /usr/local/go/pkg/windows_amd64_cgo

@@ -325,6 +325,9 @@ function detect_arch {
       ppc64le*)
         host_arch=ppc64le
         ;;
+      riscv64*)
+        host_arch=riscv64
+        ;;
       *)
         echo "Unsupported host arch. Must be x86_64, 386, arm, arm64, s390x or ppc64le." >&2
         exit 1

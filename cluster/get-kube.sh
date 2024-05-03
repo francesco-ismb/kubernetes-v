@@ -173,6 +173,8 @@ case "${machine}" in
     ;;
   i?86*)
     ;;
+  riscv64*)
+    ;;
   *)
     echo "Unknown, unsupported architecture (${machine})." >&2
     echo "Supported architectures x86_64, i686, arm, arm64, ppc64le." >&2
