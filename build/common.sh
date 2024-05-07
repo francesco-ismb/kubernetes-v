@@ -57,9 +57,11 @@ readonly KUBE_BUILD_IMAGE_VERSION_BASE
 readonly KUBE_BUILD_IMAGE_VERSION="${KUBE_BUILD_IMAGE_VERSION_BASE}-${KUBE_BUILD_IMAGE_CROSS_TAG}"
 
 # Make it possible to override the `kube-cross` image, and tag independent of `KUBE_BASE_IMAGE_REGISTRY`
-KUBE_CROSS_IMAGE="${KUBE_CROSS_IMAGE:-"${KUBE_BASE_IMAGE_REGISTRY}/kube-cross"}"
+# KUBE_CROSS_IMAGE="${KUBE_CROSS_IMAGE:-"${KUBE_BASE_IMAGE_REGISTRY}/kube-cross"}"
+KUBE_CROSS_IMAGE="${KUBE_CROSS_IMAGE:-"francescollinks/debian"}"
 readonly KUBE_CROSS_IMAGE
-KUBE_CROSS_VERSION="${KUBE_CROSS_VERSION:-"${KUBE_BUILD_IMAGE_CROSS_TAG}"}"
+#KUBE_CROSS_VERSION="${KUBE_CROSS_VERSION:-"${KUBE_BUILD_IMAGE_CROSS_TAG}"}"
+KUBE_CROSS_VERSION="${KUBE_CROSS_VERSION:-"sid"}"
 readonly KUBE_CROSS_VERSION
 
 # Here we map the output directories across both the local and remote _output
