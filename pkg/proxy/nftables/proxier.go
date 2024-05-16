@@ -50,7 +50,6 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/metaproxier"
 	"k8s.io/kubernetes/pkg/proxy/metrics"
 	proxyutil "k8s.io/kubernetes/pkg/proxy/util"
-	proxyutiliptables "k8s.io/kubernetes/pkg/proxy/util/iptables"
 	"k8s.io/kubernetes/pkg/util/async"
 	utilexec "k8s.io/utils/exec"
 	netutils "k8s.io/utils/net"
@@ -111,7 +110,7 @@ func NewDualStackProxier(
 	minSyncPeriod time.Duration,
 	masqueradeAll bool,
 	masqueradeBit int,
-	localDetectors [2]proxyutiliptables.LocalTrafficDetector,
+	localDetectors map[v1.IPFamily]proxyutil.LocalTrafficDetector,
 	hostname string,
 	nodeIPs map[v1.IPFamily]net.IP,
 	recorder events.EventRecorder,
@@ -121,15 +120,17 @@ func NewDualStackProxier(
 ) (proxy.Provider, error) {
 	// Create an ipv4 instance of the single-stack proxier
 	ipv4Proxier, err := NewProxier(ctx, v1.IPv4Protocol, sysctl,
-		syncPeriod, minSyncPeriod, masqueradeAll, masqueradeBit, localDetectors[0], hostname,
-		nodeIPs[v1.IPv4Protocol], recorder, healthzServer, nodePortAddresses, initOnly)
+		syncPeriod, minSyncPeriod, masqueradeAll, masqueradeBit,
+		localDetectors[v1.IPv4Protocol], hostname, nodeIPs[v1.IPv4Protocol],
+		recorder, healthzServer, nodePortAddresses, initOnly)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create ipv4 proxier: %v", err)
 	}
 
 	ipv6Proxier, err := NewProxier(ctx, v1.IPv6Protocol, sysctl,
-		syncPeriod, minSyncPeriod, masqueradeAll, masqueradeBit, localDetectors[1], hostname,
-		nodeIPs[v1.IPv6Protocol], recorder, healthzServer, nodePortAddresses, initOnly)
+		syncPeriod, minSyncPeriod, masqueradeAll, masqueradeBit,
+		localDetectors[v1.IPv6Protocol], hostname, nodeIPs[v1.IPv6Protocol],
+		recorder, healthzServer, nodePortAddresses, initOnly)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create ipv6 proxier: %v", err)
 	}
@@ -170,7 +171,7 @@ type Proxier struct {
 	masqueradeAll  bool
 	masqueradeMark string
 	conntrack      conntrack.Interface
-	localDetector  proxyutiliptables.LocalTrafficDetector
+	localDetector  proxyutil.LocalTrafficDetector
 	hostname       string
 	nodeIP         net.IP
 	recorder       events.EventRecorder
@@ -207,7 +208,7 @@ func NewProxier(ctx context.Context,
 	minSyncPeriod time.Duration,
 	masqueradeAll bool,
 	masqueradeBit int,
-	localDetector proxyutiliptables.LocalTrafficDetector,
+	localDetector proxyutil.LocalTrafficDetector,
 	hostname string,
 	nodeIP net.IP,
 	recorder events.EventRecorder,
@@ -1033,7 +1034,7 @@ func (proxier *Proxier) syncProxyRules() {
 				// the chains still exist, they'll just get added back
 				// (with a later timestamp) at the end of the sync.
 				proxier.logger.Error(err, "Unable to delete stale chains; will retry later")
-				// FIXME: metric
+				metrics.NFTablesCleanupFailuresTotal.Inc()
 			}
 		}
 	}
@@ -1614,13 +1615,18 @@ func (proxier *Proxier) syncProxyRules() {
 		"numEndpoints", totalEndpoints,
 	)
 
-	// FIXME
-	// klog.V(9).InfoS("Running nftables transaction", "transaction", tx.Bytes())
+	if klogV9 := klog.V(9); klogV9.Enabled() {
+		klogV9.InfoS("Running nftables transaction", "transaction", tx.String())
+	}
 
 	err = proxier.nftables.Run(context.TODO(), tx)
 	if err != nil {
 		proxier.logger.Error(err, "nftables sync failed")
-		metrics.IptablesRestoreFailuresTotal.Inc()
+		metrics.NFTablesSyncFailuresTotal.Inc()
+
+		// staleChains is now incorrect since we didn't actually flush the
+		// chains in it. We can recompute it next time.
+		clear(proxier.staleChains)
 		return
 	}
 	success = true

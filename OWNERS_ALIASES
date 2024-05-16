@@ -24,6 +24,7 @@ aliases:
     - mikedanese
     - sttts
     - wojtek-t
+    - aramase
   sig-auth-authorizers-approvers:
     - deads2k
     - liggitt
@@ -199,7 +200,6 @@ aliases:
     - ardaguclu
     - brianpursley
     - eddiezane
-    - KnVerey
     - mpuckett159
     - seans3
     - soltysh
